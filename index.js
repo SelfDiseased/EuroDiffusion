@@ -18,12 +18,7 @@ function simulateEuroCoins() {
   });
 
   async function processCountriesGroupInput(line) {
-    const input = line.split(" ");
-    const numCountries = parseInt(input[0]);
-
-    if (numCountries === 0) {
-      process.exit();
-    }
+    const numCountries = validateAndGetCountriesNumber(line);
 
     for (let i = 0; i < numCountries; i++) {
       const countryInput = await new Promise((resolve) => {
@@ -59,6 +54,23 @@ function simulateEuroCoins() {
 
     caseNumber++;
     countries = [];
+  }
+
+  function validateAndGetCountriesNumber(line) {
+    const input = line.split(" ");
+    const numCountries = parseInt(input[0]);
+
+    if (!numCountries) {
+      console.log("Invalid countries number");
+      process.exit();
+    }
+
+    if (numCountries.length > 20) {
+      console.log("Countries number is too big");
+      process.exit();
+    }
+
+    return numCountries;
   }
 
   function validateAndGetCountryName(countryData) {
