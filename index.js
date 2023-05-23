@@ -85,6 +85,8 @@ function simulateEuroCoins() {
       console.log("Country name is too long");
       process.exit();
     }
+
+    return countryName;
   }
 
   function validateAndGetCountryCoordinates(countryData) {
