@@ -11,6 +11,7 @@ function simulateEuroCoins() {
 
   let caseNumber = 1;
   let countries = [];
+  let allCountriesNames = [];
   let cities = [];
 
   rl.on("line", async (line) => {
@@ -41,10 +42,14 @@ function simulateEuroCoins() {
       countries.push(country);
     }
 
+    allCountriesNames = getAllCountriesNames(countries);
+
     countries.forEach((country) => {
       const countryCities = setCities(country);
       cities.push(...countryCities);
     });
+
+    countriesHaveNeighborsValidation(countries, cities);
 
     simulateDissemination(countries);
 
@@ -109,12 +114,12 @@ function simulateEuroCoins() {
       hasError = true;
     }
 
-    if (!xh || xh < 1 || xh > 10) {
+    if (!xh || xh < 1 || xh > 10 || xh < xl) {
       console.log("Invalid xh coordinate");
       hasError = true;
     }
 
-    if (!yh || yh < 1 || yh > 10) {
+    if (!yh || yh < 1 || yh > 10 || yh < yl) {
       console.log("Invalid yh coordinate");
       hasError = true;
     }
@@ -129,11 +134,33 @@ function simulateEuroCoins() {
     };
   }
 
+  function countriesHaveNeighborsValidation(countries, allCities) {
+    for (const country of countries) {
+      const otherCountriesCities = allCities.filter(
+        (city) => city.country !== country.name
+      );
+
+      const hasRelatedCountry = country.cities.some((city) => {
+        const relatedCities = [
+          ...getNeighborCities(city, otherCountriesCities),
+          getCity(city.x, city.y, otherCountriesCities),
+        ].filter((e) => e);
+
+        return relatedCities.some(
+          (relatedCity) => relatedCity.country !== city.country
+        );
+      });
+
+      if (!hasRelatedCountry) {
+        console.log(`Country ${country.name} doesn't have relations!`);
+        process.exit();
+      }
+    }
+  }
+
   function simulateDissemination(countries) {
     let day = 1;
     const daysLimit = 2000;
-
-    const allCountriesNames = getAllCountriesNames(countries);
 
     while (!checkIfAllCountriesCompleted(countries) && day < daysLimit) {
       simulateDay(countries, cities, allCountriesNames, day);
@@ -152,14 +179,14 @@ function simulateEuroCoins() {
 
           sendCoinsToNeighbors(city, neighborCities, coinsCorrelation);
         }
-
-        handleCountryBecameCompleted(
-          country,
-          allCountriesNames,
-          countries.length === 1 ? 0 : day
-        );
       }
     }
+
+    handleCountriesBecameCompleted(
+      countries,
+      allCountriesNames,
+      countries.length === 1 ? 0 : day
+    );
   }
 
   function setStartDayCoins() {
@@ -287,10 +314,12 @@ function simulateEuroCoins() {
     );
   }
 
-  function handleCountryBecameCompleted(country, allCountriesNames, day) {
-    if (countryBecameComplete(country, allCountriesNames)) {
-      country.complete = true;
-      country.daysToComplete = day;
+  function handleCountriesBecameCompleted(countries, allCountriesNames, day) {
+    for (const country of countries) {
+      if (countryBecameComplete(country, allCountriesNames)) {
+        country.complete = true;
+        country.daysToComplete = day;
+      }
     }
   }
 
