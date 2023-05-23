@@ -6,11 +6,18 @@ function simulateEuroCoins() {
     output: process.stdout,
   });
 
+  const cityStartCoins = 1000000;
+  const coinsCorrelation = 1000;
+
   let caseNumber = 1;
   let countries = [];
   let cities = [];
 
   rl.on("line", async (line) => {
+    processCountriesGroupInput(line);
+  });
+
+  async function processCountriesGroupInput(line) {
     const input = line.split(" ");
     const numCountries = parseInt(input[0]);
 
@@ -37,95 +44,77 @@ function simulateEuroCoins() {
       countries.push(country);
     }
 
-    // @TODO
-    countries.forEach((country) => setCities(country));
-    cities = countries.flatMap((country) => country.cities);
+    countries.forEach((country) => {
+      const countryCities = setCities(country);
+      cities.push(...countryCities);
+    });
 
     simulateDissemination(countries);
 
-    const sortedCountries = countries.sort((a, b) => {
-      if (a.daysToComplete === b.daysToComplete) {
-        return a.name.localeCompare(b.name);
-      } else {
-        return a.daysToComplete - b.daysToComplete;
-      }
-    });
+    const sortedCountries = sortCountries(countries);
 
-    console.log(`Case ${caseNumber}:`);
-    sortedCountries.forEach((country) => {
-      console.log(`${country.name} ${country.daysToComplete}`);
-    });
+    logCountries(sortedCountries);
 
     caseNumber++;
     countries = [];
-  });
+  }
 
   function simulateDissemination(countries) {
-    let completeCountries = 0;
     let day = 1;
     const daysLimit = 2000;
 
-    while (completeCountries < countries.length && day < daysLimit) {
-      for (const country of countries) {
-        for (let x = country.xl; x <= country.xh; x++) {
-          for (let y = country.yl; y <= country.yh; y++) {
-            const city = getCity(x, y, cities);
-            const neighborCities = getNeighborCities(city, cities);
-            const valueToSend = 1000;
+    const allCountriesNames = getAllCountriesNames(countries);
 
-            for (const neighborCity of neighborCities) {
-              for (const motif in city.startDayCoins) {
-                const coinsToTransport = Math.floor(
-                  city.startDayCoins[motif] / valueToSend
-                );
-
-                if (coinsToTransport > 0) {
-                  neighborCity.coins[motif] =
-                    (neighborCity.coins[motif] || 0) + coinsToTransport;
-                  city.coins[motif] -= coinsToTransport;
-                }
-              }
-            }
-          }
-
-          if (
-            !country.complete &&
-            country.cities.every((city) => isCityComplete(city))
-          ) {
-            country.complete = true;
-            country.daysToComplete = day;
-            completeCountries++;
-          }
-        }
-      }
-
-      cities = cities.map((city) => ({
-        ...city,
-        // @TODO JS tricky!!
-        startDayCoins: { ...city.coins },
-      }));
+    while (!checkIfAllCountriesCompleted(countries) && day < daysLimit) {
+      simulateDay(countries, cities, allCountriesNames, day);
 
       ++day;
     }
   }
 
+  function simulateDay(countries, cities, allCountriesNames, day) {
+    setStartDayCoins();
+    for (const country of countries) {
+      for (let x = country.xl; x <= country.xh; x++) {
+        for (let y = country.yl; y <= country.yh; y++) {
+          const city = getCity(x, y, cities);
+          const neighborCities = getNeighborCities(city, cities);
+
+          sendCoinsToNeighbors(city, neighborCities, coinsCorrelation);
+        }
+
+        handleCountryBecameCompleted(
+          country,
+          allCountriesNames,
+          countries.length === 1 ? 0 : day
+        );
+      }
+    }
+  }
+
+  function setStartDayCoins() {
+    cities.forEach((city) => {
+      // getting rid of JS Object reference
+      const startDayCoins = { ...city.coins };
+
+      city.startDayCoins = startDayCoins;
+    });
+  }
+
   function setCities(country) {
     const cities = [];
-    const startCoins = 1000000;
 
     for (let x = country.xl; x <= country.xh; x++) {
       for (let y = country.yl; y <= country.yh; y++) {
         const countryName = country.name;
         const coins = {
-          [countryName]: startCoins,
+          [countryName]: cityStartCoins,
         };
 
         const city = {
           x,
           y,
           coins,
-          // @TODO JS tricky!!
-          startDayCoins: { ...coins },
           country: countryName,
         };
 
@@ -145,50 +134,111 @@ function simulateEuroCoins() {
 
   function getNeighborCities(city, cities) {
     const { x, y } = city;
-    const neighbors = [];
 
-    // Check if there is a neighbor city to the north
-    const northCity = cities.find(
-      (neighbor) => neighbor.x === x && neighbor.y === y - 1
-    );
-    if (northCity) {
-      neighbors.push(northCity);
-    }
+    const [
+      northCoordinates,
+      eastCoordinates,
+      southCoordinates,
+      westCoordinates,
+    ] = [
+      { x, y: y - 1 },
+      { x: x + 1, y },
+      { x, y: y + 1 },
+      {
+        x: x - 1,
+        y,
+      },
+    ];
 
-    // Check if there is a neighbor city to the east
-    const eastCity = cities.find(
-      (neighbor) => neighbor.x === x + 1 && neighbor.y === y
-    );
-    if (eastCity) {
-      neighbors.push(eastCity);
-    }
+    return cities.reduce((acc, city) => {
+      checkCardinalPoints(
+        city,
+        northCoordinates,
+        eastCoordinates,
+        southCoordinates,
+        westCoordinates
+      ) && acc.push(city);
 
-    // Check if there is a neighbor city to the south
-    const southCity = cities.find(
-      (neighbor) => neighbor.x === x && neighbor.y === y + 1
-    );
-    if (southCity) {
-      neighbors.push(southCity);
-    }
-
-    // Check if there is a neighbor city to the west
-    const westCity = cities.find(
-      (neighbor) => neighbor.x === x - 1 && neighbor.y === y
-    );
-    if (westCity) {
-      neighbors.push(westCity);
-    }
-
-    return neighbors;
+      return acc;
+    }, []);
   }
 
-  function isCityComplete(city) {
-    // @TODO can i move it on top?
-    const countriesNames = countries.map((country) => country.name);
-
-    return countriesNames.every(
-      (motif) => city.coins[motif] && city.coins[motif] !== 0
+  function checkCardinalPoints(
+    city,
+    northCoordinates,
+    eastCoordinates,
+    southCoordinates,
+    westCoordinates
+  ) {
+    return (
+      checkCityCoordinates(city, northCoordinates) ||
+      checkCityCoordinates(city, eastCoordinates) ||
+      checkCityCoordinates(city, southCoordinates) ||
+      checkCityCoordinates(city, westCoordinates)
     );
+  }
+
+  function checkCityCoordinates(city, coordinates) {
+    return city.x === coordinates.x && city.y === coordinates.y;
+  }
+
+  function getAllCountriesNames(countries) {
+    return countries.map((country) => country.name);
+  }
+
+  function sendCoinsToNeighbors(city, neighborCities, coinsCorrelation) {
+    for (const neighborCity of neighborCities) {
+      for (const motif in city.startDayCoins) {
+        const coinsToTransport = Math.floor(
+          city.startDayCoins[motif] / coinsCorrelation
+        );
+
+        if (coinsToTransport > 0) {
+          neighborCity.coins[motif] =
+            (neighborCity.coins[motif] || 0) + coinsToTransport;
+          city.coins[motif] -= coinsToTransport;
+        }
+      }
+    }
+  }
+
+  function isCityComplete(city, allCountriesNames) {
+    return allCountriesNames.every((motif) => city.coins[motif]);
+  }
+
+  function checkIfAllCountriesCompleted(countries) {
+    return countries.every((country) => country.complete);
+  }
+
+  function countryBecameComplete(country, allCountriesNames) {
+    return (
+      !country.complete &&
+      country.cities.every((city) => isCityComplete(city, allCountriesNames))
+    );
+  }
+
+  function handleCountryBecameCompleted(country, allCountriesNames, day) {
+    if (countryBecameComplete(country, allCountriesNames)) {
+      country.complete = true;
+      country.daysToComplete = day;
+    }
+  }
+
+  function sortCountries(countries) {
+    return countries.sort((a, b) => {
+      if (a.daysToComplete === b.daysToComplete) {
+        return a.name.localeCompare(b.name);
+      } else {
+        return a.daysToComplete - b.daysToComplete;
+      }
+    });
+  }
+
+  function logCountries(sortedCountries) {
+    console.log(`Case ${caseNumber}:`);
+    sortedCountries.forEach((country) => {
+      console.log(`${country.name} ${country.daysToComplete}`);
+    });
   }
 }
 
