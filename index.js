@@ -30,17 +30,19 @@ function simulateEuroCoins() {
         rl.question("", resolve);
       });
 
-      // @TODO add validations
       const countryData = countryInput.split(" ");
+      const [countryName, countryCoordinates] = [
+        validateAndGetCountryName(countryData),
+        validateAndGetCountryCoordinates(countryData),
+      ];
+
       const country = {
-        name: countryData[0],
-        xl: parseInt(countryData[1]),
-        yl: parseInt(countryData[2]),
-        xh: parseInt(countryData[3]),
-        yh: parseInt(countryData[4]),
+        name: countryName,
         complete: false,
         daysToComplete: 0,
+        ...countryCoordinates,
       };
+
       countries.push(country);
     }
 
@@ -57,6 +59,60 @@ function simulateEuroCoins() {
 
     caseNumber++;
     countries = [];
+  }
+
+  function validateAndGetCountryName(countryData) {
+    const countryName = countryData[0];
+
+    if (!countryName) {
+      console.log("Country name is not defined");
+      process.exit();
+    }
+
+    if (countryName.length > 25) {
+      console.log("Country name is too long");
+      process.exit();
+    }
+  }
+
+  function validateAndGetCountryCoordinates(countryData) {
+    const [xl, yl, xh, yh] = [
+      parseInt(countryData[1]),
+      parseInt(countryData[2]),
+      parseInt(countryData[3]),
+      parseInt(countryData[4]),
+    ];
+
+    let hasError = false;
+
+    if (!xl || xl < 1 || xl > 10) {
+      console.log("Invalid xl coordinate");
+      hasError = true;
+    }
+
+    if (!yl || yl < 1 || yl > 10) {
+      console.log("Invalid yl coordinate");
+      hasError = true;
+    }
+
+    if (!xh || xh < 1 || xh > 10) {
+      console.log("Invalid xh coordinate");
+      hasError = true;
+    }
+
+    if (!yh || yh < 1 || yh > 10) {
+      console.log("Invalid yh coordinate");
+      hasError = true;
+    }
+
+    hasError && process.exit();
+
+    return {
+      xl,
+      yl,
+      xh,
+      yh,
+    };
   }
 
   function simulateDissemination(countries) {
