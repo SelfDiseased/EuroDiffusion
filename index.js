@@ -65,7 +65,11 @@ function simulateEuroCoins() {
     const input = line.split(" ");
     const numCountries = parseInt(input[0]);
 
-    if (!numCountries) {
+    if (numCountries === 0) {
+      process.exit();
+    }
+
+    if (!numCountries || numCountries < 0) {
       console.log("Invalid countries number");
       process.exit();
     }
