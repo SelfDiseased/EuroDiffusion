@@ -57,8 +57,14 @@ function simulateEuroCoins() {
 
     logCountries(sortedCountries);
 
+    handleCountriesEndOfInput();
+  }
+
+  function handleCountriesEndOfInput() {
     caseNumber++;
     countries = [];
+    allCountriesNames = [];
+    cities = [];
   }
 
   function validateAndGetCountriesNumber(line) {
@@ -139,6 +145,8 @@ function simulateEuroCoins() {
   }
 
   function countriesHaveNeighborsValidation(countries, allCities) {
+    if (countries.length === 1) return;
+
     for (const country of countries) {
       const otherCountriesCities = allCities.filter(
         (city) => city.country !== country.name
@@ -329,11 +337,13 @@ function simulateEuroCoins() {
 
   function sortCountries(countries) {
     return countries.sort((a, b) => {
-      if (a.daysToComplete === b.daysToComplete) {
-        return a.name.localeCompare(b.name);
-      } else {
-        return a.daysToComplete - b.daysToComplete;
+      if (a.name < b.name) {
+        return -1;
       }
+      if (a.name > b.name) {
+        return 1;
+      }
+      return 0;
     });
   }
 
