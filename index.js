@@ -6,8 +6,12 @@ function simulateEuroCoins() {
     output: process.stdout,
   });
 
-  const cityStartCoins = 1000000;
-  const coinsCorrelation = 1000;
+  const [
+    cityStartCoins,
+    coinsCorrelation,
+    minCoordinateValue,
+    maxCoordinateValue,
+  ] = [1000000, 1000, 1, 10];
 
   let caseNumber = 1;
   let countries = [];
@@ -114,22 +118,22 @@ function simulateEuroCoins() {
 
     let hasError = false;
 
-    if (!xl || xl < 1 || xl > 10) {
+    if (!xl || xl < minCoordinateValue || xl > maxCoordinateValue) {
       console.log("Invalid xl coordinate");
       hasError = true;
     }
 
-    if (!yl || yl < 1 || yl > 10) {
+    if (!yl || yl < minCoordinateValue || yl > maxCoordinateValue) {
       console.log("Invalid yl coordinate");
       hasError = true;
     }
 
-    if (!xh || xh < 1 || xh > 10 || xh < xl) {
+    if (!xh || xh < minCoordinateValue || xh > maxCoordinateValue || xh < xl) {
       console.log("Invalid xh coordinate");
       hasError = true;
     }
 
-    if (!yh || yh < 1 || yh > 10 || yh < yl) {
+    if (!yh || yh < minCoordinateValue || yh > maxCoordinateValue || yh < yl) {
       console.log("Invalid yh coordinate");
       hasError = true;
     }
