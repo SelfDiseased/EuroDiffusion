@@ -341,12 +341,20 @@ function simulateEuroCoins() {
 
   function sortCountries(countries) {
     return countries.sort((a, b) => {
+      if (a.daysToComplete < b.daysToComplete) {
+        return -1;
+      }
+      if (a.daysToComplete > b.daysToComplete) {
+        return 1;
+      }
+
       if (a.name < b.name) {
         return -1;
       }
       if (a.name > b.name) {
         return 1;
       }
+
       return 0;
     });
   }
